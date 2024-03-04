@@ -32,12 +32,22 @@ jobs:
           ID="$(get_prop id)"
           VERSION="$(get_prop version)"
           VERSIONCODE="$(get_prop versionCode)"
-          cat update.json | jq --arg vn $VERSION '. + {version: $vn}'
-          cat update.json | jq --arg vc $VERSIONCODE '. + {versionCode: $vc}'
+          ZIPURL="https://github.com/LittleDipshit/AntiAMTS-Magisk/releases/download/v$VERSION/$ID-v$VERSION-($VERSIONCODE).zip"
+          cat update.json | jq --arg vn $VERSION --arg vc $VERSIONCODE --arg zu $ZIPURL '. + {version: $vn, versionCode: $vc, zipUrl: $zu}' > update.json
 
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
-            files: '*-v*-(*).zip'
+            files: *-v*-(*).zip
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      - name: Commit Changes
+        run: |
+          git add .
+          git commit -m "Update update.json" || true
+          git push || true
