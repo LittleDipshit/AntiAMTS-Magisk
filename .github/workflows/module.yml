@@ -14,16 +14,30 @@ jobs:
       - name: Setup Apt Dependencies
         run: |
           sudo apt update -y && sudo apt upgrade -y
-          sudo apt install zip unzip -y
+          sudo apt install zip unzip jq -y
 
       - name: Make
         shell: bash
         run: |
-          zip -r "module.zip" * -x ".git" -x "README.md"
-          
+          get_prop() { sed -n "s|^$1=||p" module.prop; }
+          ID="$(get_prop id)"
+          VERSION="$(get_prop version)"
+          VERSIONCODE="$(get_prop versionCode)"
+          zip -r "$ID-v$VERSION-($VERSIONCODE).zip" * -x ".git" -x "README.md"
+
+      - name: Update
+        shell: bash
+        run: |
+          get_prop() { sed -n "s|^$1=||p" module.prop; }
+          ID="$(get_prop id)"
+          VERSION="$(get_prop version)"
+          VERSIONCODE="$(get_prop versionCode)"
+          cat update.json | jq --arg vn $VERSION '. + {version: $vn}'
+          cat update.json | jq --arg vc $VERSIONCODE '. + {versionCode: $vc}'
+
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
-            files: 'module.zip'
+            files: '*-v*-(*).zip'
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
